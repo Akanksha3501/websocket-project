@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WebSocket Chat UI</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f2f2f2;
+            padding: 20px;
+        }
+
+        #chatContainer {
+            width: 350px;
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+
+        #messages {
+            height: 300px;
+            border: 1px solid #ddd;
+            padding: 10px;
+            overflow-y: auto;
+            background: #fafafa;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+
+        .msg {
+            padding: 8px 12px;
+            margin: 6px 0;
+            border-radius: 6px;
+            display: inline-block;
+            max-width: 80%;
+        }
+
+        .mine {
+            background: #d1ffd6; /* light green */
+            text-align: right;
+            margin-left: auto;
+        }
+
+        .theirs {
+            background: #e6e6e6; /* light gray */
+        }
+    </style>
+</head>
+
+<body>
+
+    <h2>Real-Time Chat</h2>
+
+    <label>Enter your username:</label>
+    <input id="username" type="text" placeholder="Your name..." />
+    <button onclick="joinChat()">Join</button>
+
+    <div id="chatContainer" style="display:none; margin-top: 20px;">
+        <div id="messages"></div>
+
+        <input id="msgInput" type="text" placeholder="Type message..." />
+        <button onclick="sendMessage()">Send</button>
+    </div>
+
+    <script>
+        let ws;
+        let username;
+
+        function joinChat() {
+            username = document.getElementById("username").value;
+
+            if (!username) {
+                alert("Please enter a username!");
+                return;
+            }
+
+            ws = new WebSocket("ws://localhost:8000/ws/chat");
+
+            ws.onopen = () => {
+                ws.send(username + " joined the chat");
+            };
+
+            ws.onmessage = (event) => {
+                const messagesDiv = document.getElementById("messages");
+
+                let newMsg = document.createElement("div");
+                newMsg.classList.add("msg");
+
+                // Check if it's your message
+                if (event.data.startsWith(username + ":")) {
+                    newMsg.classList.add("mine");
+                } else {
+                    newMsg.classList.add("theirs");
+                }
+
+                // Create timestamp
+                let now = new Date();
+                let time = now.toLocaleTimeString([], {
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+
+                // Show message + timestamp
+                newMsg.innerHTML = `
+                    ${event.data}
+                    <span style="font-size:10px;color:gray;float:right;margin-left:5px;">
+                        ${time}
+                    </span>
+                `;
+
+                messagesDiv.appendChild(newMsg);
+
+                // Auto-scroll
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            };
+
+            document.getElementById("chatContainer").style.display = "block";
+        }
+
+        function sendMessage() {
+            const input = document.getElementById("msgInput");
+            ws.send(username + ": " + input.value);
+            input.value = "";
+        }
+    </script>
+
+</body>
+</html>
